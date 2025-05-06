@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesh Network Validation Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .test-card {
+            margin-bottom: 20px;
+            border-left: 5px solid #6c757d;
+        }
+        .test-card.not-started {
+            border-left-color: #6c757d;
+        }
+        .test-card.passed {
+            border-left-color: #198754;
+        }
+        .test-card.failed {
+            border-left-color: #dc3545;
+        }
+        .test-card.blocked {
+            border-left-color: #fd7e14;
+        }
+        .stage-summary {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .stage-header {
+            background-color: #e9ecef;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .nav-link.active {
+            font-weight: bold;
+        }
+        #statusBar {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 30px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            padding: 5px 15px;
+            z-index: 1000;
+        }
+        .test-details {
+            white-space: pre-line;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+        .priority-badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+            margin-left: 10px;
+        }
+        .priority-badge.stage-blocker {
+            background-color: #dc3545;
+            color: white;
+        }
+        .priority-badge.future {
+            background-color: #6c757d;
+            color: white;
+        }
+        .priority-badge.required {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .collapsible-details {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid p-3">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1>Mesh Network Validation Tracker</h1>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="newSessionBtn">New Session</button>
+                    <button class="btn btn-secondary" id="openSessionBtn">Open Session</button>
+                    <button class="btn btn-success" id="saveSessionBtn">Save Session</button>
+                    <div class="btn-group">
+                        <button class="btn btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            Reports
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" id="generateReportBtn">Generate Text Report</a></li>
+                            <li><a class="dropdown-item" href="#" id="exportCsvBtn">Export to CSV</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Information -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Project Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label for="projectName" class="form-label">Project Name:</label>
+                            </div>
+                            <div class="col-md-9">
+                                <input type="text" class="form-control" id="projectName">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label for="testerName" class="form-label">Tester Name:</label>
+                            </div>
+                            <div class="col-md-9">
+                                <input type="text" class="form-control" id="testerName">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="testDate" class="form-label">Test Date:</label>
+                            </div>
+                            <div class="col-md-9">
+                                <input type="date" class="form-control" id="testDate">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary btn-lg w-100 mb-3" id="submitAllBtn">Submit All Results</button>
+                        <button class="btn btn-danger btn-lg w-100" id="resetAllBtn">Reset All Results</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Stages -->
+        <div class="row">
+            <div class="col-12">
+                <ul class="nav nav-tabs" id="stagesTabs" role="tablist">
+                    <!-- Tabs will be added dynamically -->
+                </ul>
+                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="stagesContent">
+                    <!-- Tab content will be added dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="statusBar">Ready</div>
+    </div>
+
+    <!-- Session Load Modal -->
+    <div class="modal fade" id="loadSessionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Load Session</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="sessionFile" class="form-label">Select Session File:</label>
+                        <input class="form-control" type="file" id="sessionFile" accept=".db">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="loadSessionBtn">Load</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Global variables
+            let stages = [];
+            let testCases = {};
+            let testResults = {};
+            let currentDbPath = null;
+
+            // Set default date
+            document.getElementById('testDate').valueAsDate = new Date();
+
+            // Initialize
+            init();
+
+            async function init() {
+                try {
+                    // Fetch test structure
+                    const response = await fetch('/api/test-structure');
+                    const data = await response.json();
+
+                    stages = data.stages;
+                    testCases = data.test_cases;
+
+                    // Initialize empty test results
+                    resetTestResults();
+
+                    // Create UI
+                    createStageTabs();
+
+                    // Set event handlers
+                    setEventHandlers();
+
+                    updateStatusBar('Ready');
+                } catch (error) {
+                    console.error('Initialization failed:', error);
+                    updateStatusBar('Error: Failed to load test structure');
+                }
+            }
+
+            function resetTestResults() {
+                testResults = {};
+                for (const stageId in testCases) {
+                    testResults[stageId] = {};
+                    for (const testCase of testCases[stageId]) {
+                        testResults[stageId][testCase.id] = {
+                            status: 'Not Started',
+                            notes: '',
+                            tester: '',
+                            timestamp: ''
+                        };
+                    }
+                }
+            }
+
+            function createStageTabs() {
+                const tabsList = document.getElementById('stagesTabs');
+                const tabsContent = document.getElementById('stagesContent');
+
+                // Clear existing tabs
+                tabsList.innerHTML = '';
+                tabsContent.innerHTML = '';
+
+                // Create a tab for each stage
+                stages.forEach((stage, index) => {
+                    const stageId = stage.id;
+                    const isActive = index === 0;
+
+                    // Create tab
+                    const tabItem = document.createElement('li');
+                    tabItem.className = 'nav-item';
+                    tabItem.innerHTML = `
+                        <a class="nav-link ${isActive ? 'active' : ''}"
+                           id="stage${stageId}-tab"
+                           data-bs-toggle="tab"
+                           href="#stage${stageId}"
+                           role="tab">Stage ${stageId}</a>
+                    `;
+                    tabsList.appendChild(tabItem);
+
+                    // Create tab content
+                    const tabContent = document.createElement('div');
+                    tabContent.className = `tab-pane fade ${isActive ? 'show active' : ''}`;
+                    tabContent.id = `stage${stageId}`;
+                    tabContent.setAttribute('role', 'tabpanel');
+
+                    // Stage header
+                    const stageHeader = document.createElement('div');
+                    stageHeader.className = 'stage-header';
+                    stageHeader.innerHTML = `<h3>${stage.name}</h3>`;
+                    tabContent.appendChild(stageHeader);
+
+                    // Test cases container
+                    const testsContainer = document.createElement('div');
+                    testsContainer.className = 'tests-container';
+
+                    // Add test cases if available for this stage
+                    if (testCases[stageId]) {
+                        testCases[stageId].forEach(testCase => {
+                            const testCard = createTestCard(stageId, testCase);
+                            testsContainer.appendChild(testCard);
+                        });
+                    }
+
+                    tabContent.appendChild(testsContainer);
+
+                    // Stage summary
+                    const stageSummary = document.createElement('div');
+                    stageSummary.className = 'stage-summary';
+                    stageSummary.id = `summary-stage${stageId}`;
+                    tabContent.appendChild(stageSummary);
+
+                    // Add to main container
+                    tabsContent.appendChild(tabContent);
+
+                    // Update stage summary
+                    updateStageSummary(stageId);
+                });
+            }
+
+function createTestCard(stageId, testCase) {
+    const testId = testCase.id;
+    const status = testResults[stageId][testId].status;
+    const priority = testCase.priority || "";
+    const details = testCase.details || "";
+    
+    // Create priority badge class
+    let priorityBadgeClass = "priority-badge";
+    if (priority.toLowerCase().includes('blocker')) {
+        priorityBadgeClass += " stage-blocker";
+    } else if (priority.toLowerCase().includes('future')) {
+        priorityBadgeClass += " future";
+    } else {
+        priorityBadgeClass += " required";
+    }
+    
+    const card = document.createElement('div');
+    card.className = `card test-card ${status.toLowerCase().replace(' ', '-')}`;
+    card.id = `test-${stageId}-${testId.replace('.', '-')}`;
+    
+    let cardHtml = `
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <h5>
+                        <span class="test-id">${testId}</span> - 
+                        <span class="test-description">${testCase.description}</span>
+                        <span class="${priorityBadgeClass}">${priority}</span>
+                        <span class="float-end collapsible-details" data-test-id="${testId}" data-stage-id="${stageId}">
+                            <i class="bi bi-chevron-down"></i>
+                        </span>
+                    </h5>
+                </div>
+            </div>
+    `;
+    
+    // Add details section
+    cardHtml += `
+        <div class="row mt-2 test-details-section" id="details-${stageId}-${testId.replace('.', '-')}" style="display: none;">
+            <div class="col-md-12">
+                <pre class="test-details">${details}</pre>
+            </div>
+        </div>
+    `;
+    
+    // Add status and notes section
+    cardHtml += `
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label">Status:</label>
+                        <select class="form-select status-select" data-stage="${stageId}" data-test="${testId}">
+                            <option value="Not Started" ${status === 'Not Started' ? 'selected' : ''}>Not Started</option>
+                            <option value="Passed" ${status === 'Passed' ? 'selected' : ''}>Passed</option>
+                            <option value="Failed" ${status === 'Failed' ? 'selected' : ''}>Failed</option>
+                            <option value="Blocked" ${status === 'Blocked' ? 'selected' : ''}>Blocked</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label class="form-label">Notes:</label>
+                        <textarea class="form-control notes-input" rows="2" 
+                                  data-stage="${stageId}" data-test="${testId}">${testResults[stageId][testId].notes}</textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-12 text-end">
+                    <button class="btn btn-primary save-test-btn" 
+                            data-stage="${stageId}" data-test="${testId}">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    card.innerHTML = cardHtml;
+    return card;
+}
+            function updateStageSummary(stageId) {
+                const summaryElement = document.getElementById(`summary-stage${stageId}`);
+                if (!summaryElement) return;
+
+                // Count status totals
+                let total = 0;
+                let passed = 0;
+                let failed = 0;
+                let blocked = 0;
+                let notStarted = 0;
+
+                if (testResults[stageId]) {
+                    for (const testId in testResults[stageId]) {
+                        total++;
+                        const status = testResults[stageId][testId].status;
+                        if (status === 'Passed') passed++;
+                        else if (status === 'Failed') failed++;
+                        else if (status === 'Blocked') blocked++;
+                        else if (status === 'Not Started') notStarted++;
+                    }
+                }
+
+                // Determine stage status
+                let stageStatus = 'Not Started';
+                if (total > 0) {
+                    if (failed > 0) stageStatus = 'Failed';
+                    else if (blocked > 0) stageStatus = 'Blocked';
+                    else if (notStarted > 0) stageStatus = 'In Progress';
+                    else stageStatus = 'Passed';
+                }
+
+                // Status color
+                let statusColor = 'secondary';
+                if (stageStatus === 'Passed') statusColor = 'success';
+                else if (stageStatus === 'Failed') statusColor = 'danger';
+                else if (stageStatus === 'Blocked') statusColor = 'warning';
+                else if (stageStatus === 'In Progress') statusColor = 'primary';
+
+                // Update summary HTML
+                summaryElement.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4>Stage Summary</h4>
+                            <div class="d-flex flex-wrap">
+                                <div class="me-4"><strong>Total:</strong> ${total}</div>
+                                <div class="me-4"><strong>Passed:</strong> <span class="text-success">${passed}</span></div>
+                                <div class="me-4"><strong>Failed:</strong> <span class="text-danger">${failed}</span></div>
+                                <div class="me-4"><strong>Blocked:</strong> <span class="text-warning">${blocked}</span></div>
+                                <div><strong>Not Started:</strong> <span class="text-secondary">${notStarted}</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <h4>Stage Status:</h4>
+                            <span class="badge bg-${statusColor} fs-5">${stageStatus}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function updateTestStatus(stageId, testId, status) {
+                if (testResults[stageId] && testResults[stageId][testId]) {
+                    testResults[stageId][testId].status = status;
+                    testResults[stageId][testId].timestamp = new Date().toISOString();
+                    testResults[stageId][testId].tester = document.getElementById('testerName').value;
+
+                    // Update card styling
+                    const card = document.getElementById(`test-${stageId}-${testId.replace('.', '-')}`);
+                    if (card) {
+                        card.className = `card test-card ${status.toLowerCase().replace(' ', '-')}`;
+                    }
+
+                    // Update stage summary
+                    updateStageSummary(stageId);
+                    updateStatusBar(`Updated status for test ${testId} to ${status}`);
+                }
+            }
+
+            function updateTestNotes(stageId, testId, notes) {
+                if (testResults[stageId] && testResults[stageId][testId]) {
+                    testResults[stageId][testId].notes = notes;
+                }
+            }
+
+            function saveTestCase(stageId, testId) {
+                const statusSelect = document.querySelector(`.status-select[data-stage="${stageId}"][data-test="${testId}"]`);
+                const notesInput = document.querySelector(`.notes-input[data-stage="${stageId}"][data-test="${testId}"]`);
+
+                if (statusSelect && notesInput) {
+                    const status = statusSelect.value;
+                    const notes = notesInput.value;
+
+                    testResults[stageId][testId].status = status;
+                    testResults[stageId][testId].notes = notes;
+                    testResults[stageId][testId].timestamp = new Date().toISOString();
+                    testResults[stageId][testId].tester = document.getElementById('testerName').value;
+
+                    // Update card styling
+                    const card = document.getElementById(`test-${stageId}-${testId.replace('.', '-')}`);
+                    if (card) {
+                        card.className = `card test-card ${status.toLowerCase().replace(' ', '-')}`;
+                    }
+
+                    // Update stage summary
+                    updateStageSummary(stageId);
+
+                    // If database path exists, save to database
+                    if (currentDbPath) {
+                        saveToDatabase(stageId, testId);
+                    }
+
+                    updateStatusBar(`Saved test case ${testId}`);
+                }
+            }
+
+            function toggleTestDetails(stageId, testId) {
+                const detailsSection = document.getElementById(`details-${stageId}-${testId.replace('.', '-')}`);
+                const toggleIcon = document.querySelector(`.collapsible-details[data-test-id="${testId}"][data-stage-id="${stageId}"] i`);
+
+                if (detailsSection.style.display === 'none') {
+                    detailsSection.style.display = 'block';
+                    toggleIcon.classList.remove('bi-chevron-down');
+                    toggleIcon.classList.add('bi-chevron-up');
+                } else {
+                    detailsSection.style.display = 'none';
+                    toggleIcon.classList.remove('bi-chevron-up');
+                    toggleIcon.classList.add('bi-chevron-down');
+                }
+            }
+		async function saveToDatabase(stageId, testId) {
+                try {
+                    const response = await fetch('/api/save-test', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            db_path: currentDbPath,
+                            stage_id: stageId,
+                            test_id: testId,
+                            status: testResults[stageId][testId].status,
+                            notes: testResults[stageId][testId].notes,
+                            tester: testResults[stageId][testId].tester
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!data.success) {
+                        console.error('Save failed:', data.error);
+                        updateStatusBar(`Error: ${data.error}`);
+                    }
+                } catch (error) {
+                    console.error('Save error:', error);
+                    updateStatusBar('Error: Failed to save to database');
+                }
+            }
+
+            function updateStatusBar(message) {
+                const statusBar = document.getElementById('statusBar');
+                statusBar.textContent = message;
+            }
+
+            function setEventHandlers() {
+                // Status select change
+                document.addEventListener('change', function(event) {
+                    if (event.target.classList.contains('status-select')) {
+                        const stageId = event.target.getAttribute('data-stage');
+                        const testId = event.target.getAttribute('data-test');
+                        updateTestStatus(stageId, testId, event.target.value);
+                    }
+                });
+
+                // Notes input change
+                document.addEventListener('input', function(event) {
+                    if (event.target.classList.contains('notes-input')) {
+                        const stageId = event.target.getAttribute('data-stage');
+                        const testId = event.target.getAttribute('data-test');
+                        updateTestNotes(stageId, testId, event.target.value);
+                    }
+                });
+
+                // Save test button click
+                document.addEventListener('click', function(event) {
+                    if (event.target.classList.contains('save-test-btn')) {
+                        const stageId = event.target.getAttribute('data-stage');
+                        const testId = event.target.getAttribute('data-test');
+                        saveTestCase(stageId, testId);
+                    }
+                });
+
+                // Collapsible details click
+                document.addEventListener('click', function(event) {
+                    if (event.target.closest('.collapsible-details')) {
+                        const clickedElement = event.target.closest('.collapsible-details');
+                        const stageId = clickedElement.getAttribute('data-stage-id');
+                        const testId = clickedElement.getAttribute('data-test-id');
+                        toggleTestDetails(stageId, testId);
+                    }
+                });
+
+                // New session button
+                document.getElementById('newSessionBtn').addEventListener('click', newSession);
+
+                // Open session button
+                document.getElementById('openSessionBtn').addEventListener('click', function() {
+                    const modal = new bootstrap.Modal(document.getElementById('loadSessionModal'));
+                    modal.show();
+                });
+
+                // Load session button
+                document.getElementById('loadSessionBtn').addEventListener('click', function() {
+                    const fileInput = document.getElementById('sessionFile');
+                    if (fileInput.files.length > 0) {
+                        const file = fileInput.files[0];
+                        loadSession(file);
+                        bootstrap.Modal.getInstance(document.getElementById('loadSessionModal')).hide();
+                    } else {
+                        alert('Please select a file to load');
+                    }
+                });
+
+                // Save session button
+                document.getElementById('saveSessionBtn').addEventListener('click', saveSession);
+
+                // Submit all button
+                document.getElementById('submitAllBtn').addEventListener('click', submitAllResults);
+
+                // Reset all button
+                document.getElementById('resetAllBtn').addEventListener('click', resetAllResults);
+
+                // Generate report button
+                document.getElementById('generateReportBtn').addEventListener('click', function() {
+                    generateReport('txt');
+                });
+
+                // Export CSV button
+                document.getElementById('exportCsvBtn').addEventListener('click', function() {
+                    generateReport('csv');
+                });
+            }
+
+            async function newSession() {
+                // Check if there are unsaved changes
+                if (currentDbPath) {
+                    if (!confirm('Start a new test session? Any unsaved changes will be lost.')) {
+                        return;
+                    }
+                }
+
+                // Reset UI
+                document.getElementById('projectName').value = '';
+                document.getElementById('testDate').valueAsDate = new Date();
+
+                // Reset data
+                resetTestResults();
+                createStageTabs();
+                currentDbPath = null;
+
+                // Create new database
+                try {
+                    const response = await fetch('/api/create-session', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            project_name: document.getElementById('projectName').value,
+                            tester_name: document.getElementById('testerName').value
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        currentDbPath = data.db_path;
+                        updateStatusBar('New test session started');
+                    } else {
+                        console.error('New session failed:', data.error);
+                        updateStatusBar(`Error: ${data.error}`);
+                    }
+                } catch (error) {
+                    console.error('New session error:', error);
+                    updateStatusBar('Error: Failed to create new session');
+                }
+            }
+
+            async function loadSession(file) {
+                // Create FormData
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    // Upload file
+                    const uploadResponse = await fetch('/api/upload-db', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const uploadData = await uploadResponse.json();
+                    if (!uploadData.success) {
+                        throw new Error(uploadData.error);
+                    }
+
+                    // Load data from uploaded file
+                    const loadResponse = await fetch('/api/load-results', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            db_path: uploadData.db_path
+                        })
+                    });
+
+                    const loadData = await loadResponse.json();
+                    if (!loadData.success) {
+                        throw new Error(loadData.error);
+                    }
+
+                    // Update UI with loaded data
+                    const projectInfo = loadData.project_info;
+                    document.getElementById('projectName').value = projectInfo.project_name || '';
+                    document.getElementById('testerName').value = projectInfo.tester_name || '';
+                    if (projectInfo.test_date) {
+                        document.getElementById('testDate').value = projectInfo.test_date;
+                    }
+
+                    // Update test results
+                    testResults = loadData.test_results;
+
+                    // Update UI
+                    createStageTabs();
+
+                    // Set current database path
+                    currentDbPath = uploadData.db_path;
+
+                    updateStatusBar(`Loaded test session from ${file.name}`);
+
+                } catch (error) {
+                    console.error('Load error:', error);
+                    updateStatusBar(`Error: Failed to load session - ${error.message}`);
+                }
+            }
+
+            async function saveSession() {
+                // Check if project name is provided
+                if (!document.getElementById('projectName').value) {
+                    alert('Please enter a project name');
+                    return;
+                }
+
+                try {
+                    // If no current DB path, create one
+                    if (!currentDbPath) {
+                        const createResponse = await fetch('/api/create-session', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                project_name: document.getElementById('projectName').value,
+                                tester_name: document.getElementById('testerName').value
+                            })
+                        });
+
+                        const createData = await createResponse.json();
+                        if (!createData.success) {
+                            throw new Error(createData.error);
+                        }
+
+                        currentDbPath = createData.db_path;
+                    }
+
+                    // Save all test results
+                    for (const stageId in testResults) {
+                        for (const testId in testResults[stageId]) {
+                            await saveToDatabase(stageId, testId);
+                        }
+                    }
+
+                    // Save DB file for download
+                    const saveResponse = await fetch('/api/save-db', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            db_path: currentDbPath
+                        })
+                    });
+
+                    const saveData = await saveResponse.json();
+                    if (!saveData.success) {
+                        throw new Error(saveData.error);
+                    }
+
+                    // Download the file
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = `/api/download-report/${saveData.download_path}`;
+                    downloadLink.download = saveData.download_path;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+
+                    updateStatusBar('Test session saved successfully');
+
+                } catch (error) {
+                    console.error('Save error:', error);
+                    updateStatusBar(`Error: Failed to save session - ${error.message}`);
+                }
+            }
+
+            async function submitAllResults() {
+                // Check if all required information is filled
+                if (!document.getElementById('projectName').value) {
+                    alert('Please enter a project name');
+                    return;
+                }
+
+                if (!document.getElementById('testerName').value) {
+                    alert('Please enter a tester name');
+                    return;
+                }
+
+                // Check if all test cases are completed
+                const incompleteStages = [];
+                for (const stageId in testResults) {
+                    let incompleteTests = 0;
+                    for (const testId in testResults[stageId]) {
+                        if (testResults[stageId][testId].status === 'Not Started') {
+                            incompleteTests++;
+                        }
+                    }
+
+                    if (incompleteTests > 0) {
+                        incompleteStages.push(`Stage ${stageId}: ${incompleteTests} tests not started`);
+                    }
+                }
+
+                if (incompleteStages.length > 0 && !confirm('Some tests are not completed:\n\n' +
+                                                       incompleteStages.join('\n') +
+                                                       '\n\nDo you want to submit anyway?')) {
+                    return;
+                }
+
+                // Save to database
+                try {
+                    if (!currentDbPath) {
+                        await saveSession();
+                    } else {
+                        // Save all test results
+                        for (const stageId in testResults) {
+                            for (const testId in testResults[stageId]) {
+                                await saveToDatabase(stageId, testId);
+                            }
+                        }
+                    }
+
+                    alert('Test results submitted successfully!');
+                    updateStatusBar('Test results submitted successfully');
+
+                } catch (error) {
+                    console.error('Submit error:', error);
+                    updateStatusBar(`Error: Failed to submit results - ${error.message}`);
+                }
+            }
+
+            function resetAllResults() {
+                if (confirm('Are you sure you want to reset all test results?')) {
+                    resetTestResults();
+                    createStageTabs();
+                    updateStatusBar('All test results have been reset');
+                }
+            }
+
+            async function generateReport(format) {
+                if (!currentDbPath) {
+                    alert('Please save your test session first');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/export-report', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            db_path: currentDbPath,
+                            format: format
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error(data.error);
+                    }
+
+                    // Download the report
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = `/api/download-report/${data.report_path}`;
+                    downloadLink.download = data.report_path;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+
+                    updateStatusBar(`Report generated successfully (${format.toUpperCase()})`);
+                } catch (error) {
+                    console.error('Report generation error:', error);
+                    updateStatusBar(`Error: Failed to generate report - ${error.message}`);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
