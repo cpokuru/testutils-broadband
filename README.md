@@ -1,1 +1,1 @@
-# rdk-broadband-testutils
+# broadband-testutils
