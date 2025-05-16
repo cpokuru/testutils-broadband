@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Features</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('feature_details', feature_id=feature.id) }}">{{ feature.name }}</a></li>
+                <li class="breadcrumb-item active">Add Test Case</li>
+            </ol>
+        </nav>
+        <h1>Add Test Case for {{ feature.name }}</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Test Case Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expected_result" class="form-label">Expected Result</label>
+                        <textarea class="form-control" id="expected_result" name="expected_result" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="Not Started">Not Started</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Passed">Passed</option>
+                            <option value="Failed">Failed</option>
+                        </select>
+                    </div>
+                    <div class="d-flex">
+                        <button type="submit" class="btn btn-primary">Add Test Case</button>
+                        <a href="{{ url_for('feature_details', feature_id=feature.id) }}" class="btn btn-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                Tips for Good Test Cases
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li>Be specific about what you're testing</li>
+                    <li>Include all necessary steps</li>
+                    <li>Define clear expected results</li>
+                    <li>Make sure the test is repeatable</li>
+                    <li>Keep it simple and focused</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

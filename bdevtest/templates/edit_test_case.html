@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Features</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('feature_details', feature_id=feature.id) }}">{{ feature.name }}</a></li>
+                <li class="breadcrumb-item active">Edit Test Case</li>
+            </ol>
+        </nav>
+        <h1>Edit Test Case</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Test Case Name</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ test_case.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ test_case.description }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expected_result" class="form-label">Expected Result</label>
+                        <textarea class="form-control" id="expected_result" name="expected_result" rows="2">{{ test_case.expected_result }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="Not Started" {% if test_case.status == 'Not Started' %}selected{% endif %}>Not Started</option>
+                            <option value="In Progress" {% if test_case.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                            <option value="Passed" {% if test_case.status == 'Passed' %}selected{% endif %}>Passed</option>
+                            <option value="Failed" {% if test_case.status == 'Failed' %}selected{% endif %}>Failed</option>
+                        </select>
+                    </div>
+                    <div class="d-flex">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <a href="{{ url_for('feature_details', feature_id=feature.id) }}" class="btn btn-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                Test Status Information
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li><strong>Not Started</strong>: Test has not been executed yet</li>
+                    <li><strong>In Progress</strong>: Test is currently being executed</li>
+                    <li><strong>Passed</strong>: Test completed successfully</li>
+                    <li><strong>Failed</strong>: Test completed but did not meet expectations</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
